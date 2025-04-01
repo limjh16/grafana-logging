@@ -2,9 +2,9 @@
 # https://docs.docker.com/compose/how-tos/multiple-compose-files/extends/
 
 services:
-  alloy:
+  alloy-logging:
     image: grafana/alloy:latest
-    container_name: alloy
+    container_name: alloy-logging
     ports:
     # REMEMBER, any port below 1024 is privileged and should not be used!
     # https://www.w3.org/Daemon/User/Installation/PrivilegedPorts.html
@@ -24,13 +24,13 @@ services:
     container_name: loki
     ports:
       - "3100:3100"
-  grafana:
+  grafana-logging:
     image: grafana/grafana:latest
-    container_name: grafana-1
+    container_name: grafana-logging
     restart: unless-stopped
     ports:
       - '13000:3000'
     volumes:
-      - grafana-storage:/var/lib/grafana
+      - grafana-logging-storage:/var/lib/grafana
 volumes:
-  grafana-storage:
+  grafana-logging-storage:
