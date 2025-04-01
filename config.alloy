@@ -1,3 +1,6 @@
+// Reload while running by using the /-/reload endpoint (curl url:12345/-/reload or visit it on the browser)
+// See: https://grafana.com/docs/alloy/latest/reference/http/#-reload
+
 loki.write "local" {
   endpoint {
     url = "http://loki:3100/loki/api/v1/push"
@@ -24,7 +27,7 @@ loki.source.syslog "syslog" {
 // endpoint for raw http is http://url:5555/loki/api/v1/raw
 loki.source.api "loki_html" {
   http {
-    // not needed since it is default
+    // listen_address is not needed since 0.0.0.0 is default
     // listen_address = "0.0.0.0"
     listen_port = "5555"
   }

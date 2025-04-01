@@ -1,11 +1,18 @@
+# Made to be run alone, or extended in another Grafana docker-compose setup! Refer to README.md
+# https://docs.docker.com/compose/how-tos/multiple-compose-files/extends/
+
 services:
   alloy:
     image: grafana/alloy:latest
     container_name: alloy
     ports:
-      - "12345:12345"
+    # REMEMBER, any port below 1024 is privileged and should not be used!
+    # https://www.w3.org/Daemon/User/Installation/PrivilegedPorts.html
+      - "12345:12345" # web interface
+      # the following ports are largely chosen following Graylog docker-compose defaults during migration, no other reason
+      # https://github.com/Graylog2/docker-compose/blob/b787fc8ccecbe2ddcac01d220e6c17ff89d73507/open-core/docker-compose.yml#L63-L66
       - "5140:5140/tcp" # syslog
-      - "5140:5140/udp" # syslog
+      # - "5140:5140/udp" # syslog
       - "5555:5555" # raw http
     command: run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy
     volumes:
