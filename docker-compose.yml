@@ -17,7 +17,7 @@ services:
     command: run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy
     volumes:
       - type: bind
-        source: ./config.alloy
+        source: ./config/alloy/config.alloy
         target: /etc/alloy/config.alloy
   loki:
     image: grafana/loki:latest
