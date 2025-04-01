@@ -1,0 +1,35 @@
+loki.write "local" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}
+
+loki.source.syslog "syslog" {
+  listener {
+    address  = "0.0.0.0:5140"
+    protocol = "tcp"
+    labels   = { component = "loki.source.syslog", protocol = "tcp" }
+    syslog_format = "rfc3164"
+  }
+
+  // listener {
+  //   address  = "0.0.0.0:5140"
+  //   protocol = "udp"
+  //   labels   = { component = "loki.source.syslog", protocol = "udp"}
+  // }
+
+  forward_to = [loki.write.local.receiver]
+}
+
+// endpoint for raw http is http://url:5555/loki/api/v1/raw
+loki.source.api "loki_html" {
+  http {
+    // not needed since it is default
+    // listen_address = "0.0.0.0"
+    listen_port = "5555"
+  }
+  labels = {
+    component = "loki.source.api", protocol = "http", service_name = "raw_http",
+  }
+  forward_to = [loki.write.local.receiver]
+}

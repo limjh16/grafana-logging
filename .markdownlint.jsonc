@@ -1,0 +1,5 @@
+{
+  "ul-indent": { "indent": 4 }, // 4-space rule in CommonMark and Bitbucket
+  "line-length": false,
+  "no-inline-html": {"allowed_elements": ["details", "summary"]}
+}
