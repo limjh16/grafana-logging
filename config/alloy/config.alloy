@@ -25,6 +25,7 @@ loki.source.syslog "syslog" {
 }
 
 // endpoint for raw http is http://url:5555/loki/api/v1/raw
+// TODO: Properly configure labels or relabel incoming JSON, to ensure low cardinality https://grafana.com/docs/loki/latest/get-started/labels/cardinality/
 loki.source.api "loki_html" {
   http {
     // listen_address is not needed since 0.0.0.0 is default
