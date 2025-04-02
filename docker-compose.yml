@@ -19,6 +19,7 @@ services:
       - type: bind
         source: ./config/alloy/config.alloy
         target: /etc/alloy/config.alloy
+      - /var/run/docker.sock:/var/run/docker.sock
   loki:
     image: grafana/loki:latest
     container_name: loki

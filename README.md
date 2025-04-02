@@ -4,13 +4,11 @@ This repository includes config and `docker-compose.yml` files to set up a remot
 
 ## Supported logging sources
 
-New sources can be added as long as Alloy / Loki supports them, but as of now, raw http (like [curtin](https://curtin.readthedocs.io/en/latest/topics/reporting.html#example-http-request) uses during ubuntu-server installation) and syslog is built in to the configuration files.
+New sources can be added as long as Alloy / Loki supports them, but as of now, raw http (like [curtin](https://curtin.readthedocs.io/en/latest/topics/reporting.html#example-http-request) uses during ubuntu-server installation), syslog and docker are built in to the configuration files.
 
 - Point syslog to this machine's IP, port :5140, with TCP protocol.
     - By default, `config.alloy` is set up to injest syslog messages with **RFC 3164** format to accomodate ChirpStackOS and OpenWRT (this is not documented anywhere, but testing shows that it uses the older RFC 3164 format)
 - Point webhook JSON log reporting to this machine's IP, port :5555, **with the endpoint `/loki/api/v1/raw`**
-
-TODO: Injest docker logs
 
 ## Integration
 

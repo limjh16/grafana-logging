@@ -37,3 +37,16 @@ loki.source.api "loki_html" {
   }
   forward_to = [loki.write.local.receiver]
 }
+
+// docker injest, ensure that /var/run/docker.sock is bind mounted!
+
+discovery.docker "linux" {
+  host = "unix:///var/run/docker.sock"
+}
+
+loki.source.docker "default" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.docker.linux.targets
+  labels     = {"app" = "docker"}
+  forward_to = [loki.write.local.receiver]
+}
