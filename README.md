@@ -7,7 +7,7 @@ This repository includes config and `docker-compose.yml` files to set up a remot
 New sources can be added as long as Alloy / Loki supports them, but as of now, raw http (like [curtin](https://curtin.readthedocs.io/en/latest/topics/reporting.html#example-http-request) uses during ubuntu-server installation), syslog and docker are built in to the configuration files.
 
 - Point syslog to this machine's IP, port :5140, with TCP protocol.
-    - By default, `config.alloy` is set up to injest syslog messages with **RFC 3164** format to accomodate ChirpStackOS and OpenWRT (this is not documented anywhere, but testing shows that it uses the older RFC 3164 format)
+    - By default, `syslog.alloy` is set up to injest syslog messages with **RFC 3164** format to accomodate ChirpStackOS and OpenWRT (this is not documented anywhere, but testing shows that it uses the older RFC 3164 format)
 - Point webhook JSON log reporting to this machine's IP, port :5555, **with the endpoint `/loki/api/v1/raw`**
 
 ## Integration
@@ -59,7 +59,8 @@ Running `docker compose up -d` in this repository should spin up the required co
 
 Syslog / JSON over HTTP / Docker / ... --> Alloy (Agent) --> Loki (Server) --> Grafana (Display)
 
-- Alloy is a OTel collector, it manages how data flows into the system, thus, inputs and ports are all defined with the `alloy` docker service or in `config.alloy`
+- Alloy is a OTel collector, it manages how data flows into the system, thus, inputs and ports are all defined with the `alloy` docker service and in the config files in `config/alloy/`
+    - All config files in the directory will be [ran as one config file](https://grafana.com/docs/alloy/v1.7/reference/cli/run/#usage), there is no concept of importing as of now
 - Loki is a Log Aggregator, it injests and stores logs, and manages the labelling / indexing / querying / storage of all the logs
     - Loki is currently set up in a Monolithic mode, however if there are too many logs to manage, refer to [the other possible deployment modes](https://grafana.com/docs/loki/latest/get-started/deployment-modes/)
     - Logs are currently persisted in the `loki-data` docker volume

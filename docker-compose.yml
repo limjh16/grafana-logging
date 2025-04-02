@@ -14,11 +14,11 @@ services:
       - "5140:5140/tcp" # syslog
       # - "5140:5140/udp" # syslog
       - "5555:5555" # raw http
-    command: run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy
+    command: run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/
     volumes:
       - type: bind
-        source: ./config/alloy/config.alloy
-        target: /etc/alloy/config.alloy
+        source: ./config/alloy/
+        target: /etc/alloy/
       - /var/run/docker.sock:/var/run/docker.sock
   loki:
     image: grafana/loki:latest

@@ -1,0 +1,12 @@
+// docker injest, ensure that /var/run/docker.sock is bind mounted!
+
+discovery.docker "linux" {
+  host = "unix:///var/run/docker.sock"
+}
+
+loki.source.docker "default" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.docker.linux.targets
+  labels     = { "service_name" = "loki.source.docker" }
+  forward_to = [loki.write.local.receiver]
+}
