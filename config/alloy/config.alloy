@@ -84,9 +84,7 @@ loki.source.api "loki_html" {
     // listen_address = "0.0.0.0"
     listen_port = "5555"
   }
-  labels = {
-    component = "loki.source.api", protocol = "http", service_name = "raw_http",
-  }
+  labels = { service_name = "loki.source.api" }
   forward_to = [loki.write.local.receiver]
 }
 
@@ -99,6 +97,6 @@ discovery.docker "linux" {
 loki.source.docker "default" {
   host       = "unix:///var/run/docker.sock"
   targets    = discovery.docker.linux.targets
-  labels     = {"app" = "docker"}
+  labels     = { "service_name" = "loki.source.docker" }
   forward_to = [loki.write.local.receiver]
 }
