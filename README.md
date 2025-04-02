@@ -82,9 +82,28 @@ To ensure that the Grafana setup is repeatable, we should always provision data 
 
 ### Labels
 
-TODO: Loki has a [minimal indexing approach](https://grafana.com/oss/loki/), and only indexes the labels + timestamp. However, the webhook JSONs and RFC3164 syslog messages might not be processed ideally by default.
+Loki has a [minimal indexing approach](https://grafana.com/oss/loki/), and only indexes the labels + timestamp.
 
-Reference:
+[This](https://nsrc.org/activities/agendas/en/nmm-4-days/netmgmt/en/log-management/log-management-loki-overview.pdf) is a good slide deck and resource for understanding Loki, log streams, cardinality, and best practices.
 
-- <https://grafana.com/docs/loki/latest/get-started/labels/> labels best practices
-- <https://grafana.com/docs/alloy/latest/reference/components/loki/loki.relabel/> use this to relabel
+#### RFC3164 Syslog
+
+The RFC3164 syslog messages are not processed ideally by default. This also applies to RFC5424 messages, however there are more fields to be filled.
+
+- Under the hood, Alloy uses the [go-syslog](https://github.com/leodido/go-syslog) parser (see [here](https://github.com/grafana/alloy/blob/ca20237442991ed314c69c8a83ab04c3277be9fb/internal/component/loki/source/syslog/internal/syslogtarget/syslogtarget.go#L18)) when injesting syslogs.
+    - Here is an example output of a [parsed RFC3164 message](https://github.com/leodido/go-syslog/blob/e1d78c258095eb935654186707af3bf3c1cafea2/rfc3164/example_test.go#L26-L31)
+- However, the [processed labels](https://github.com/grafana/alloy/blob/ca20237442991ed314c69c8a83ab04c3277be9fb/internal/component/loki/source/syslog/internal/syslogtarget/syslogtarget.go#L189-L206) are all [internal labels](https://grafana.com/docs/alloy/v1.7/tutorials/logs-and-relabeling-basics/#add-a-prometheusrelabel-component-to-your-pipeline) (scroll down to the warning from this link, labels starting with double underscores are dropped).
+    - This is likely to prevent too many labels from being created.
+    - This is documented (very poorly) in the [alloy `loki.source.syslog` docs](https://grafana.com/docs/alloy/v1.7/reference/components/loki/loki.source.syslog/#listener) ("All header fields ... are ... internal labels ...")
+    - For both RFC3164 and RFC5424 messages, the following internal labels are applied:
+        - `__syslog_message_severity`
+        - `__syslog_message_facility`
+        - `__syslog_message_hostname`
+        - `__syslog_message_app_name`
+        - `__syslog_message_proc_id`
+        - `__syslog_message_msg_id` (not used in RFC3164)
+        - However, `HOSTNAME`, `APP-NAME`, `PROCID` and `MSGID` is only explicity defined in [RFC5424](https://datatracker.ietf.org/doc/html/rfc5424#section-6). For RFC3164 messages, they are [derived in the parser](https://github.com/leodido/go-syslog/blob/e1d78c258095eb935654186707af3bf3c1cafea2/rfc3164/syslog_message.go#L34-L44).
+    - For RFC5424 messages with `label_structured_data` set to `true`, more internal labels will then be created in the form of `__syslog_message_sd_<ID>_<KEY>` ([source](https://grafana.com/docs/alloy/v1.7/reference/components/loki/loki.source.syslog/#listener))
+- Hence, in this repository, all of the internal labels have been relabelled to normal labels.
+    - Even the [source's test file](https://github.com/grafana/alloy/blob/ca20237442991ed314c69c8a83ab04c3277be9fb/internal/component/loki/source/syslog/internal/syslogtarget/syslogtarget_test.go#L445-L458) relabels these
+- To prevent too many labels from being created, only `hostname` is retained as a normal label, since it should make sense for each individual device to have its own log stream. Everything else is transformed by a `loki.process` into a structured metadata field.
