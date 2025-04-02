@@ -1,5 +1,5 @@
 // Reload while running by using the /-/reload endpoint (curl url:12345/-/reload or visit it on the browser)
-// See: https://grafana.com/docs/alloy/latest/reference/http/#-reload
+// See: https://grafana.com/docs/alloy/v1.7/reference/http/#-reload
 
 loki.write "local" {
   endpoint {
