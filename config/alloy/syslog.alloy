@@ -1,8 +1,8 @@
 loki.process "syslog" {
   forward_to = [loki.write.local.receiver]
 
-  // structured_metadata is enabled by default, as of v1.7
-  // https://grafana.com/docs/loki/v1.7/configure/#limits_config
+  // structured_metadata is enabled by default, as of v3.4
+  // https://grafana.com/docs/loki/v3.4.x/configure/#limits_config
   stage.structured_metadata {
     values = {
       severity = "",
