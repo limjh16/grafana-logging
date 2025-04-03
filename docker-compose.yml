@@ -5,21 +5,25 @@ services:
   alloy-logging:
     image: grafana/alloy:latest
     container_name: alloy-logging
-    ports:
     # REMEMBER, any port below 1024 is privileged and should not be used!
     # https://www.w3.org/Daemon/User/Installation/PrivilegedPorts.html
+    ports:
       - "12345:12345" # web interface
       # the following ports are largely chosen following Graylog docker-compose defaults during migration, no other reason
       # https://github.com/Graylog2/docker-compose/blob/b787fc8ccecbe2ddcac01d220e6c17ff89d73507/open-core/docker-compose.yml#L63-L66
       - "5140:5140/tcp" # syslog
       # - "5140:5140/udp" # syslog
       - "5555:5555" # raw http
-    command: run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/
+    command: [
+        "run",
+        "--server.http.listen-addr=0.0.0.0:12345",
+        "--storage.path=/var/lib/alloy/data",
+        "/etc/alloy/", # concat all the config files together
+      ]
     volumes:
-      - type: bind
-        source: ./config/alloy/
-        target: /etc/alloy/
+      - ./config/alloy/:/etc/alloy/:ro
       - /var/run/docker.sock:/var/run/docker.sock
+
   loki:
     image: grafana/loki:latest
     container_name: loki
@@ -28,16 +32,23 @@ services:
     # persist logs, source: https://hub.docker.com/r/grafana/loki
     volumes:
       - loki-data:/loki
+    command: [
+        "-config.file=/etc/loki/local-config.yaml", # default CMD, from https://hub.docker.com/layers/grafana/loki/3.4/images/sha256-776847cc648cf21d309560fb9fde98dc0454156be0ababf252bbfca07dadf8af
+        "-pattern-ingester.enabled=true", # enable pattern ingester # https://grafana.com/docs/grafana/latest/explore/simplified-exploration/logs/troubleshooting/#there-are-no-patterns
+        # "-log-config-reverse-order"
+      ]
+
   grafana-logging:
     image: grafana/grafana:latest
     container_name: grafana-logging
     restart: unless-stopped
     ports:
-      - '13000:3000'
+      - "13000:3000"
     # default paths: https://grafana.com/docs/grafana/latest/setup-grafana/configure-docker/#default-paths
     volumes:
       - grafana-logging-storage:/var/lib/grafana
       - ./config/grafana/provisioning/:/etc/grafana/provisioning/:ro
+
 volumes:
   grafana-logging-storage:
   loki-data:
