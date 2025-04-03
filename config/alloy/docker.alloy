@@ -1,12 +1,129 @@
 // docker injest, ensure that /var/run/docker.sock is bind mounted!
 
-discovery.docker "linux" {
+loki.process "docker" {
+	forward_to = [loki.write.local.receiver]
+
+	/** WARNING!
+  DO NOT use `stage.docker` to extract timestamp and other metadata if injesting via `loki.source.docker`
+  It is only meant to work with docker log FILES, not the stdout and stderr lines which come directly from the unix socket
+
+  From the documentation: "... log lines in the standard format of Docker log files"
+  https://grafana.com/docs/alloy/latest/reference/components/loki/loki.process/#stagedocker
+  From the source code: It uses `docker.client.ContainerLogs`
+  https://github.com/grafana/alloy/blob/73695b18e94bb2cf54bde6eeada9d782c0273829/internal/component/loki/source/docker/internal/dockertarget/target.go#L111
+  And `docker.client.ContainerLogs` returns the output directly from the stdout and stderr
+  https://github.com/moby/moby/blob/26e516dff4384bf3bc2233020a2f5f4001755efb/client/container_logs.go#L19
+
+	// stage.docker { }
+  */
+
+	stage.structured_metadata {
+		values = {
+			docker_compose_service             = "",
+			docker_compose_project_working_dir = "",
+			docker_compose_network_name        = "",
+		}
+	}
+}
+
+discovery.relabel "docker" {
+	targets = discovery.docker.local.targets
+
+	rule {
+		/**
+		It was an intentional choice to not label the container name for compose projects,
+		since the service name is likely more useful
+
+		We also likely have no use for network names of docker run containers, so those are unlabelled
+			(if networks are important, we should use a compose file)
+		*/
+		source_labels = ["__meta_docker_container_label_com_docker_compose_project", "__meta_docker_container_name"]
+		action        = "replace"
+		separator     = ";"
+		/**
+		Regex explanation:
+			^;      If no string exists before the separator (no compose_project),
+			\/(.+)  and a string exists starting with "/" (container name), (backslash required to escape front slash)
+			        capture the container name with (.+) and write it to "docker_container_name"
+
+		The regex is captured with `` instead of "" so that \/ isn't invalid
+			(see https://community.grafana.com/t/unknown-escape-sequence-when-parsing-alloy-config/132018/2)
+		*/
+		regex        = `^;\/(.+)`
+		target_label = "docker_container_name"
+		replacement  = "$1"
+	}
+
+	rule {
+		/**
+		Separate compose projects into a separate stream and label from docker run containers
+		This shouldn't introduce extra overhead, since the projects are in different streams already anyways
+		*/
+		source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
+		regex         = ".+" // if any string exists
+		target_label  = "service_name"
+		replacement   = "loki.source.docker_compose"
+	}
+
+	rule {
+		/**
+		Separate compose projects into a separate stream and label from docker run containers
+		This shouldn't introduce extra overhead, since the projects are in different streams already anyways
+		*/
+		source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
+		regex         = "^$" // if no string exists
+		target_label  = "service_name"
+		replacement   = "loki.source.docker_run"
+	}
+
+	/**
+	Ideally, we should just use a labelmap and regex like the below example.
+	However, there are more labels to drop / manually change to structured metadata
+		(since structured metadata doesn't support regex)
+	So doing it this way seems better for now, until we require even more labels to be preserved
+
+	// The following rule will extract the string behind "_com_" and use that as the label
+	rule {
+		action      = "labelmap"
+		regex       = "__meta_docker_container_label_com_(.*)"
+		replacement = "$1"
+	}
+	*/
+
+	rule {
+		source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
+		target_label  = "docker_compose_project"
+	}
+
+	rule {
+		source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+		target_label  = "docker_compose_service"
+	}
+
+	rule {
+		source_labels = ["__meta_docker_container_label_com_docker_compose_project_working_dir"]
+		target_label  = "docker_compose_project_working_dir"
+	}
+
+	rule {
+		source_labels = ["__meta_docker_network_name"]
+		target_label  = "docker_compose_network_name"
+	}
+}
+
+discovery.docker "local" {
 	host = "unix:///var/run/docker.sock"
 }
 
 loki.source.docker "default" {
-	host       = "unix:///var/run/docker.sock"
-	targets    = discovery.docker.linux.targets
-	labels     = {"service_name" = "loki.source.docker"}
-	forward_to = [loki.write.local.receiver]
+	host = "unix:///var/run/docker.sock"
+	/**
+		for some reason, `discovery.relabel.bla` has the exported field ".output"
+		instead of ".targets" like `discovery.docker.bla` ??
+		https://grafana.com/docs/alloy/latest/reference/components/discovery/discovery.relabel/#exported-fields
+	*/
+	targets    = discovery.relabel.docker.output
+	forward_to = [loki.process.docker.receiver]
+	// labels will be applied in discovery.relabel.docker so that we can split streams for compose and run
+	// labels = {"service_name" = "loki.source.docker"}
 }
