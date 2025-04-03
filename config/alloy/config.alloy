@@ -6,3 +6,8 @@ loki.write "local" {
 		url = "http://loki:3100/loki/api/v1/push"
 	}
 }
+/*
+livedebugging {
+	enabled = true
+}
+*/
