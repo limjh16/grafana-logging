@@ -1,0 +1,29 @@
+{
+  // See https://go.microsoft.com/fwlink/?LinkId=733558
+  // for the documentation about the tasks.json format
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "reload alloy config",
+      "type": "shell",
+      "command": "curl",
+      "args": ["localhost:12345/-/reload"],
+      "problemMatcher": {
+        "owner": "grafana-alloy",
+        "source": "grafana-alloy",
+        "fileLocation": [
+          "relative",
+          "${workspaceFolder}/config/alloy/"
+        ],
+        "pattern": {
+          "regexp": "^(.+): \/etc\/alloy\/(.+):(\\d+):(\\d+): (.*)$",
+          "file": 2,
+          "line": 3,
+          "column": 4,
+          "severity": 1,
+          "message": 5,
+        }
+      }
+    }
+  ]
+}
