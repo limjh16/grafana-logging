@@ -56,7 +56,7 @@ loki.relabel "syslog" {
 	}
 }
 
-loki.source.syslog "syslog" {
+loki.source.syslog "syslog_rfc3164" {
 	listener {
 		address       = "0.0.0.0:5140"
 		protocol      = "tcp"

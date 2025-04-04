@@ -7,7 +7,7 @@ loki.write "http" {
 	}
 }
 
-loki.source.api "loki_html" {
+loki.source.api "http" {
 	http {
 		// listen_address is not needed since 0.0.0.0 is default
 		// listen_address = "0.0.0.0"
