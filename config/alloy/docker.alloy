@@ -14,7 +14,7 @@ loki.process "docker" {
   It is only meant to work with docker log FILES, not the stdout and stderr lines which come directly from the unix socket
 
   From the documentation: "... log lines in the standard format of Docker log files"
-  https://grafana.com/docs/alloy/latest/reference/components/loki/loki.process/#stagedocker
+  https://grafana.com/docs/alloy/v1.7/reference/components/loki/loki.process/#stagedocker
   From the source code: It uses `docker.client.ContainerLogs`
   https://github.com/grafana/alloy/blob/73695b18e94bb2cf54bde6eeada9d782c0273829/internal/component/loki/source/docker/internal/dockertarget/target.go#L111
   And `docker.client.ContainerLogs` returns the output directly from the stdout and stderr
@@ -22,6 +22,24 @@ loki.process "docker" {
 
 	// stage.docker { }
   */
+
+	/**
+	https://grafana.com/docs/alloy/v1.7/reference/config-blocks/logging/#arguments
+	On Grafana Alloy (and other grafana containers, though I cannot find the exact documentation),
+		logs are sent in logfmt by default to the docker stdout.
+
+	`stage.logfmt` requires explicit key definitions, however because we want to injest logs from all possible sources,
+		there is no standardised set of log keys for us to extract.
+		This is currently an open GitHub issue on the Alloy repository:
+		https://github.com/grafana/alloy/issues/2156
+
+	However, on Loki, logfmt and json log lines are automatically being extracted with "discover_generic_fields".
+	See the following PR:
+	https://github.com/grafana/loki/pull/15188/files#diff-2bb8e70d0a56554bbc6c93993f0457a2a010af29154d72b12d3492ebf4a7ba46R3404
+	This is the reason behind so many random fields / structured_metadata sprouting up on Loki, without it being added in Alloy.
+
+	// stage.logfmt { }
+	*/
 
 	stage.structured_metadata {
 		values = {
@@ -126,7 +144,7 @@ loki.source.docker "default" {
 	/**
 		for some reason, `discovery.relabel.bla` has the exported field ".output"
 		instead of ".targets" like `discovery.docker.bla` ??
-		https://grafana.com/docs/alloy/latest/reference/components/discovery/discovery.relabel/#exported-fields
+		https://grafana.com/docs/alloy/v1.7/reference/components/discovery/discovery.relabel/#exported-fields
 	*/
 	targets    = discovery.relabel.docker.output
 	forward_to = [loki.process.docker.receiver]
