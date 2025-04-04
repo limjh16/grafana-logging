@@ -62,10 +62,8 @@ loki.source.syslog "syslog" {
 		protocol      = "tcp"
 		labels        = {service_name = "loki.source.syslog", protocol = "tcp"}
 		syslog_format = "rfc3164"
-		// since we relabel and set hostnames as an individual label,
-		// timezone problems should be easily traceable and fixable on the host device.
-		// hence, use the incoming timestamp.
-		use_incoming_timestamp = true
+		// if this is set as true, timestamp will be negative
+		use_incoming_timestamp = false
 	}
 
 	// listener {
