@@ -1,11 +1,6 @@
 // Reload while running by using the /-/reload endpoint (curl url:12345/-/reload or visit it on the browser)
 // See: https://grafana.com/docs/alloy/v1.7/reference/http/#-reload
 
-loki.write "local" {
-	endpoint {
-		url = "http://loki:3100/loki/api/v1/push"
-	}
-}
 /*
 livedebugging {
 	enabled = true

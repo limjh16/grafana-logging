@@ -1,7 +1,13 @@
 // docker injest, ensure that /var/run/docker.sock is bind mounted!
 
+loki.write "docker" {
+	endpoint {
+		url = "http://loki:3100/loki/api/v1/push"
+	}
+}
+
 loki.process "docker" {
-	forward_to = [loki.write.local.receiver]
+	forward_to = [loki.write.docker.receiver]
 
 	/** WARNING!
   DO NOT use `stage.docker` to extract timestamp and other metadata if injesting via `loki.source.docker`

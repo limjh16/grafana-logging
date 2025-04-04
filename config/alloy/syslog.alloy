@@ -1,5 +1,11 @@
+loki.write "syslog" {
+	endpoint {
+		url = "http://loki:3100/loki/api/v1/push"
+	}
+}
+
 loki.process "syslog" {
-	forward_to = [loki.write.local.receiver]
+	forward_to = [loki.write.syslog.receiver]
 
 	// structured_metadata is enabled by default, as of v3.4
 	// https://grafana.com/docs/loki/v3.4.x/configure/#limits_config

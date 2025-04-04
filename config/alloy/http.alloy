@@ -1,5 +1,12 @@
 // endpoint for raw http is http://url:5555/loki/api/v1/raw
 // TODO: Properly configure labels or relabel incoming JSON, to ensure low cardinality https://grafana.com/docs/loki/latest/get-started/labels/cardinality/
+
+loki.write "http" {
+	endpoint {
+		url = "http://loki:3100/loki/api/v1/push"
+	}
+}
+
 loki.source.api "loki_html" {
 	http {
 		// listen_address is not needed since 0.0.0.0 is default
@@ -7,5 +14,5 @@ loki.source.api "loki_html" {
 		listen_port = "5555"
 	}
 	labels     = {service_name = "loki.source.api"}
-	forward_to = [loki.write.local.receiver]
+	forward_to = [loki.write.http.receiver]
 }
