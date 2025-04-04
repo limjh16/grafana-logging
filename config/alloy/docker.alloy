@@ -9,8 +9,8 @@ loki.write "docker" {
 loki.process "docker" {
 	forward_to = [loki.write.docker.receiver]
 
-	/** WARNING!
-  DO NOT use `stage.docker` to extract timestamp and other metadata if injesting via `loki.source.docker`
+	/**
+  There is no point to use `stage.docker` to extract timestamp and other metadata if injesting via `loki.source.docker`
   It is only meant to work with docker log FILES, not the stdout and stderr lines which come directly from the unix socket
 
   From the documentation: "... log lines in the standard format of Docker log files"
