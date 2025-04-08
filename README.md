@@ -79,7 +79,7 @@ Running `docker compose up -d` in this repository should spin up the required co
 Syslog / JSON over HTTP / Docker / ... --> Alloy (Agent) --> Loki (Server) --> Grafana (Display)
 
 - Alloy is a OTel collector, it manages how data flows into the system, thus, inputs and ports are all defined with the `alloy` docker service and in the config files in `config/alloy/`
-    - All config files in the directory will be [ran as one config file](https://grafana.com/docs/alloy/v1.7/reference/cli/run/#usage), there is no concept of importing as of now
+    - All config files in the directory will be [ran as one config file](https://grafana.com/docs/alloy/v1.7/reference/cli/run/#usage) for simplicity sake
 - Loki is a Log Aggregator, it injests and stores logs, and manages the labelling / indexing / querying / storage of all the logs
     - Loki is currently set up in a Monolithic mode, however if there are too many logs to manage, refer to [the other possible deployment modes](https://grafana.com/docs/loki/latest/get-started/deployment-modes/)
     - Logs are currently persisted in the `loki-data` docker volume
@@ -128,13 +128,49 @@ The RFC3164 syslog messages are not processed ideally by default. This also appl
     - Even the [source's test file](https://github.com/grafana/alloy/blob/ca20237442991ed314c69c8a83ab04c3277be9fb/internal/component/loki/source/syslog/internal/syslogtarget/syslogtarget_test.go#L445-L458) relabels these
 - To prevent too many labels from being created, only `hostname` is retained as a normal label, since it should make sense for each individual device to have its own log stream. Everything else is transformed by a `loki.process` into a structured metadata field.
 
-### HTTP 400 "entry too far behind" error
+#### Docker
+
+`loki.source.docker` obtains all its information and labels from `discovery.docker` through the `targets` field, and the labels are documented [here](https://grafana.com/docs/alloy/v1.7/reference/components/discovery/discovery.docker/#exported-fields).
+
+- However, since all the labels are internal labels, the default output of `loki.source.docker` is quite useless, with no information about which container is sending which log.
+- In this repository, we have chosen to split `compose` and normal `docker run` container logs into their own different `service_name`.
+    - We assume that most of the docker containers should be spun up via `docker compose` rather than individual `docker run`. Individual `docker run` containers are probably small tests or development containers, hence it will be useful to view those logs separately from the (presumably) production containers in `docker compose`
+    - Logs from `compose` projects will be labelled `PREFIX.docker_compose`:
+        - For these containers, only `docker_compose_project` will be labelled
+        - The following other fields will be structured metadata:
+            - `docker_compose_service` (this was chosen over container name as the container name is not always specified in the compose file)
+            - `docker_compose_project_working_dir`
+            - `docker_compose_network_name`
+        - The assumption here is that there will be many services, and putting services as a label might increase the cardinality too much. The other structured metadata fields (`working_dir` and `network_name`) were exposed for ease of debugging.
+    - Logs from `docker run` containers will be labelled `PREFIX.docker_run`
+        - Only `docker_container_name` will be labelled.
+    - Other labels and fields not mentioned here are dropped.
+
+### Docker specific information
+
+Exposing the docker daemon directly to Alloy was chosen over setting up another [logging driver](https://docs.docker.com/engine/logging/configure/) in docker / docker compose itself because it was easy to plug and play into existing containers and docker compose projects.
+
+`gelf` and `syslog` logging drivers could be compatible with Alloy and Loki, however they are not tested. If mounting the docker daemon directly to the Alloy container is too big of a security vulnerability, consider using those logging drivers to push logs, and set up the corresponding `loki.source.xxx` to receive those logs.
+
+#### File structure
+
+For remote machines, we want to have an independent docker container running that is able to scrape logs from all docker containers and forward it to a centralised Loki server. That is contained in the `alloy-docker-forwarder` folder.
+
+- To be able to reuse the relabelling rules and processing stages, all the crucial docker processing components are contained in a separate file, at [`./config/alloy/docker-processor.alloy`](./config/alloy/docker-processor.alloy).
+- This file is mounted and imported into `alloy-docker-forwarder` as a [module](https://grafana.com/docs/alloy/v1.7/get-started/modules/)
+- This same file is also concatenated into the combined Alloy config for use with the main logging server.
+
+#### HTTP 400 "entry too far behind" error
 
 - When Alloy attempts to send logs that are older than 1 hour, a HTTP 400 "entry too far behind" error will occur, and completely block any further logs from being sent through that Alloy pipeline.
+    - So far, this is only observed in `loki.source.docker` since Alloy consumes all docker logs, even older ones from containers that have been running for >1h
+        - The timestamp for all docker containers are processed [here in the source code](https://github.com/grafana/alloy/blob/537e036e73cbc0b62ae0dd6b82e72f5fffb4b646/internal/component/loki/source/docker/internal/dockertarget/target.go#L156-L166)
+        - However, this timestamp isn't set to a label or structured metadata. Hence, when viewing on Grafana, the timestamp looks "invisible" and you can scratch your head for two hours figuring out how Loki even "detects" that the log is old.
+        - Instead, it is included as part of the `logproto` message, which is the message format when sending from Alloy -> Loki (see [source code](https://github.com/grafana/alloy/blob/537e036e73cbc0b62ae0dd6b82e72f5fffb4b646/internal/component/loki/source/docker/internal/dockertarget/target.go#L207-L213) and [Alloy documentation for `loki.write` using `logproto`](https://grafana.com/docs/alloy/v1.7/reference/components/loki/loki.write/))
 - To prevent this, a `stage.drop` is added to the `loki.process` block in `docker.alloy`, that drops all logs older than 30m.
 - If this error appears for any other pipeline, consider implementing a similar fix.
 
-### Docker remote daemon access
+#### Docker remote daemon access
 
 - Remote access to remote machines' docker daemons are supported, hence bypassing the need to run another container on the remote machine. However **this is not recommended** since docker daemons usually have root access to the machine. Any networking security leak would result in very bad consequences, since the remote agent could also obtain root access to the machine.
 - If this is still desired, it has been tested to work with the following steps:
