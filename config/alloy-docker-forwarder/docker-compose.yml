@@ -4,6 +4,9 @@ services:
     container_name: alloy-docker-forwarder
     ports:
       - "12345:12345" # web interface
+    environment:
+      - ALLOY_CUSTOM_LOKI_IP=http://<insert-ip-here>:3100
+      - ALLOY_CUSTOM_LOKI_MACHINE_NAME=smap_compat_node
     command:
       [
         "run",

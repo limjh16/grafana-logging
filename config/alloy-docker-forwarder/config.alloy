@@ -4,11 +4,11 @@ import.file "docker_source_processor" {
 
 loki.write "docker" {
 	endpoint {
-		url = "http://orion.local:3100/loki/api/v1/push"
+		url = sys.env("ALLOY_CUSTOM_LOKI_IP") + "/loki/api/v1/push"
 	}
 }
 
 docker_source_processor.docker_source_processor "remote" {
 	loki_write_receiver = loki.write.docker.receiver
-	label_prefix        = "remote.smap_compat_node"
+	label_prefix        = "remote" + sys.env("ALLOY_CUSTOM_LOKI_LABEL_PREFIX")
 }
