@@ -1,5 +1,5 @@
 import.file "docker_source_processor" {
-	filename = "../alloy/docker.alloy"
+	filename = "/etc/alloy/docker.alloy"
 }
 
 loki.write "docker" {

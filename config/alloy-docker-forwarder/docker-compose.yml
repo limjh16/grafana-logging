@@ -16,4 +16,5 @@ services:
       ]
     volumes:
       - ./config.alloy:/etc/alloy/config.alloy:ro
+      - ../../config/alloy/docker.alloy:/etc/alloy/docker.alloy:ro
       - /var/run/docker.sock:/var/run/docker.sock
