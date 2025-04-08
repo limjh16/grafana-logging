@@ -22,11 +22,7 @@ services:
       ]
     volumes:
       - ./config/alloy/:/etc/alloy/:ro
-
-  alloy-docker:
-    extends:
-      file: "./docker-compose-alloy-docker.yml"
-      service: alloy-docker
+      - /var/run/docker.sock:/var/run/docker.sock
 
   loki:
     image: grafana/loki:latest
