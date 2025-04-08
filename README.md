@@ -128,6 +128,12 @@ The RFC3164 syslog messages are not processed ideally by default. This also appl
     - Even the [source's test file](https://github.com/grafana/alloy/blob/ca20237442991ed314c69c8a83ab04c3277be9fb/internal/component/loki/source/syslog/internal/syslogtarget/syslogtarget_test.go#L445-L458) relabels these
 - To prevent too many labels from being created, only `hostname` is retained as a normal label, since it should make sense for each individual device to have its own log stream. Everything else is transformed by a `loki.process` into a structured metadata field.
 
+### HTTP 400 "entry too far behind" error
+
+- When Alloy attempts to send logs that are older than 1 hour, a HTTP 400 "entry too far behind" error will occur, and completely block any further logs from being sent through that Alloy pipeline.
+- To prevent this, a `stage.drop` is added to the `loki.process` block in `docker.alloy`, that drops all logs older than 30m.
+- If this error appears for any other pipeline, consider implementing a similar fix.
+
 ### Docker remote daemon access
 
 - Remote access to remote machines' docker daemons are supported, hence bypassing the need to run another container on the remote machine. However **this is not recommended** since docker daemons usually have root access to the machine. Any networking security leak would result in very bad consequences, since the remote agent could also obtain root access to the machine.

@@ -46,6 +46,19 @@ declare "docker_source_processor" {
 		// stage.logfmt { }
 		*/
 
+		stage.drop {
+			/**
+			When Alloy scrapes docker, it will scrape ALL docker logs, even containers running before Alloy was started.
+			This creates problems since the older logs might have a timestamp older than 1 hour:
+				Loki will drop all inputs that have a timestamp older than 1 hour, see:
+				https://grafana.com/blog/2024/01/04/the-concise-guide-to-loki-how-to-work-with-out-of-order-and-older-logs/#how-out-of-order-ingestion-works
+
+			To be safe, we drop any log entries older than 30 minutes
+			*/
+			older_than          = "30m"
+			drop_counter_reason = "older than 30m"
+		}
+
 		stage.structured_metadata {
 			values = {
 				docker_compose_service             = "",
