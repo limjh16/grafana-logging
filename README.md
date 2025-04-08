@@ -178,3 +178,7 @@ For remote machines, we want to have an independent docker container running tha
     - Change `host = "unix:///var/run/docker.sock"` to `host = "tcp://<replace-with-ip-addr>:2375"` (two lines to change!) in [`./config/alloy-docker/config.alloy`](./config/alloy-docker/config.alloy)
     - **Definitely** access the docker daemon only through the local network or a VPN
     - Consider using [TLS (HTTPS) to protect the docker daemon](https://docs.docker.com/engine/security/protect-access/) (not tested)
+
+### Prometheus
+
+A Prometheus service is included in this project's `docker-compose.yml` and is tested to be working and able to injest metrics from Alloy, Loki, and Grafana. However, dashboards and automatic provisioning are not set up yet (since the Alloy and Loki metrics honestly look quite useless as of now).

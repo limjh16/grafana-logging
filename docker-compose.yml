@@ -49,6 +49,19 @@ services:
       - grafana-logging-storage:/var/lib/grafana
       - ./config/grafana/provisioning/:/etc/grafana/provisioning/:ro
 
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    command:
+      - --config.file=/etc/prometheus.yaml
+      - --web.enable-remote-write-receiver
+      - --enable-feature=exemplar-storage
+      - --enable-feature=native-histograms
+    volumes:
+      - ./config/prometheus/prometheus.yml:/etc/prometheus.yaml
+    ports:
+      - "9090:9090"
+
 volumes:
   grafana-logging-storage:
   loki-data:
