@@ -22,13 +22,6 @@ services:
 
   # ... other services
 
-  alloy-docker:
-    extends:
-      file: "./grafana-logging/docker-compose-alloy-docker.yml"
-      service: alloy-docker
-    networks:
-      - grafana-network # remember to change this if another network name is defined
-
   alloy-logging:
     extends:
       file: "./grafana-logging/docker-compose.yml"
@@ -68,27 +61,12 @@ Point webhook JSON log reporting to this machine's IP, port :5555, **with the en
 
 #### Forward docker logs
 
-- Run **only** the `alloy-docker` service from the [`./docker-compose-alloy-docker.yml`](./docker-compose-alloy-docker.yml)
+In the remote machine, clone this repository as per normal, but the target `docker-compose.yml` is in the [`alloy-docker-forwarder`](./alloy-docker-forwarder/) folder.
 
-    ```yaml
-    services:
-
-    # ... other services
-
-    alloy-docker:
-        extends:
-        file: "./grafana-logging/docker-compose-alloy-docker.yml"
-        service: alloy-docker
-        networks:
-        - example-network # remember to change this if another network name is defined
-
-    networks:
-        example-network:
-    ```
-
-- Change `url = "http://loki:3100/loki/api/v1/push"` to `url = "http://<replace-with-ip-addr>:3100/loki/api/v1/push"` in [`./config/alloy-docker/config.alloy`](./config/alloy-docker/config.alloy).
-- Consider changing the labels in [`./config/alloy-docker/config.alloy`](./config/alloy-docker/config.alloy) to add details about the remote machine. For example,
-    - Change `replacement = "loki.source.docker_compose"` and `replacement = "loki.source.docker_run"` to `replacement = "<remote-machine-description>.docker_compose"` and `replacement = "<remote-machine-description>.docker_run"`
+- `cd` to the `alloy-docker-forwarder` folder
+- Copy `.env.example` to `.env` (`cp .env.example .env`) (NOTE: This file does not persist in source control!)
+- Edit the `.env` file to point the IP to the remote logging server's loki port, and change the machine name
+- Run `docker compose up -d` in the folder
 
 ## Development
 
