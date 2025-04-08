@@ -9,6 +9,7 @@ New sources can be added as long as Alloy / Loki supports them, but as of now, r
 - Point syslog to this machine's IP, port :5140, with TCP protocol.
     - By default, `syslog.alloy` is set up to injest syslog messages with **RFC 3164** format to accomodate ChirpStackOS and OpenWRT (this is not documented anywhere, but testing shows that it uses the older RFC 3164 format)
 - Point webhook JSON log reporting to this machine's IP, port :5555, **with the endpoint `/loki/api/v1/raw`**
+- Other machines' docker containers can forward their logs to the host machine's Loki instance, see the [forward docker logs](#forward-docker-logs) section below.
 
 ## Integration
 
@@ -21,33 +22,73 @@ services:
 
   # ... other services
 
+  alloy-docker:
+    extends:
+      file: "./grafana-logging/docker-compose-alloy-docker.yml"
+      service: alloy-docker
+    networks:
+      - grafana-network # remember to change this if another network name is defined
+
   alloy-logging:
     extends:
-      file: grafana-logging/docker-compose.yml
+      file: "./grafana-logging/docker-compose.yml"
       service: alloy-logging
     networks:
       - grafana-network # remember to change this if another network name is defined
 
   loki:
     extends:
-      file: grafana-logging/docker-compose.yml
+      file: "./grafana-logging/docker-compose.yml"
       service: loki
     networks:
       - grafana-network # remember to change this if another network name is defined
+
+  grafana:
+    # ... other config
+    volumes:
+      # To provision Loki by default
+      - ./grafana-logging/config/grafana/provisioning/datasource-loki.yml:/etc/grafana/provisioning/datasource-loki.yml:ro
 
   networks:
     grafana-network:
 ```
 
-To provision Loki by default without clicking through the webui, mount [`grafana/provisioning/datasources/datasource-loki.yml`](./config/grafana/provisioning/datasources/datasource-loki.yml) in the Grafana container. Example:
+### Remote machine integration
 
-```yaml
-services:
-  grafana:
-    # ... other config
-    volumes:
-      - ./grafana-logging/config/grafana/provisioning/datasource-loki.yml:/etc/grafana/provisioning/datasource-loki.yml:ro
-```
+If we wish to centralise log collection across many remote machines into one centralised logging server, we can use Syslog, HTTP, or forward the docker container logs.
+
+#### Syslog
+
+- Point syslog to this machine's IP, port :5140, with TCP protocol.
+    - By default, `syslog.alloy` is set up to injest syslog messages with **RFC 3164** format to accomodate ChirpStackOS and OpenWRT (this is not documented anywhere, but testing shows that it uses the older RFC 3164 format)
+
+#### HTTP
+
+Point webhook JSON log reporting to this machine's IP, port :5555, **with the endpoint `/loki/api/v1/raw`**
+
+#### Forward docker logs
+
+- Run **only** the `alloy-docker` service from the [`./docker-compose-alloy-docker.yml`](./docker-compose-alloy-docker.yml)
+
+    ```yaml
+    services:
+
+    # ... other services
+
+    alloy-docker:
+        extends:
+        file: "./grafana-logging/docker-compose-alloy-docker.yml"
+        service: alloy-docker
+        networks:
+        - example-network # remember to change this if another network name is defined
+
+    networks:
+        example-network:
+    ```
+
+- Change `url = "http://loki:3100/loki/api/v1/push"` to `url = "http://<replace-with-ip-addr>:3100/loki/api/v1/push"` in [`./config/alloy-docker/config.alloy`](./config/alloy-docker/config.alloy).
+- Consider changing the labels in [`./config/alloy-docker/config.alloy`](./config/alloy-docker/config.alloy) to add details about the remote machine. For example,
+    - Change `replacement = "loki.source.docker_compose"` and `replacement = "loki.source.docker_run"` to `replacement = "<remote-machine-description>.docker_compose"` and `replacement = "<remote-machine-description>.docker_run"`
 
 ## Development
 
@@ -108,3 +149,12 @@ The RFC3164 syslog messages are not processed ideally by default. This also appl
 - Hence, in this repository, all of the internal labels have been relabelled to normal labels.
     - Even the [source's test file](https://github.com/grafana/alloy/blob/ca20237442991ed314c69c8a83ab04c3277be9fb/internal/component/loki/source/syslog/internal/syslogtarget/syslogtarget_test.go#L445-L458) relabels these
 - To prevent too many labels from being created, only `hostname` is retained as a normal label, since it should make sense for each individual device to have its own log stream. Everything else is transformed by a `loki.process` into a structured metadata field.
+
+### Docker remote daemon access
+
+- Remote access to remote machines' docker daemons are supported, hence bypassing the need to run another container on the remote machine. However **this is not recommended** since docker daemons usually have root access to the machine. Any networking security leak would result in very bad consequences, since the remote agent could also obtain root access to the machine.
+- If this is still desired, it has been tested to work with the following steps:
+    - Follow the instructions [here](https://docs.docker.com/engine/daemon/remote-access/#configuring-remote-access-with-systemd-unit-file)
+    - Change `host = "unix:///var/run/docker.sock"` to `host = "tcp://<replace-with-ip-addr>:2375"` (two lines to change!) in [`./config/alloy-docker/config.alloy`](./config/alloy-docker/config.alloy)
+    - **Definitely** access the docker daemon only through the local network or a VPN
+    - Consider using [TLS (HTTPS) to protect the docker daemon](https://docs.docker.com/engine/security/protect-access/) (not tested)

@@ -1,0 +1,16 @@
+services:
+  alloy-docker:
+    image: grafana/alloy:latest
+    container_name: alloy-docker
+    ports:
+      - "12346:12346" # web interface
+    command:
+      [
+        "run",
+        "--server.http.listen-addr=0.0.0.0:12346",
+        "--storage.path=/var/lib/alloy/data",
+        "/etc/alloy/config.alloy",
+      ]
+    volumes:
+      - ./config/alloy-docker/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock
