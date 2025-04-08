@@ -1,5 +1,5 @@
-import.file "docker_source_processor" {
-	filename = "/etc/alloy/docker.alloy"
+import.file "docker_processor" {
+	filename = "/etc/alloy/docker-processor.alloy"
 }
 
 loki.write "docker" {
@@ -8,7 +8,7 @@ loki.write "docker" {
 	}
 }
 
-docker_source_processor.docker_source_processor "remote" {
+docker_processor.docker_processor "remote" {
 	loki_write_receiver = loki.write.docker.receiver
 	label_prefix        = "remote" + sys.env("ALLOY_CUSTOM_LOKI_LABEL_PREFIX")
 }
