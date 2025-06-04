@@ -24,14 +24,14 @@ services:
 
   alloy-logging:
     extends:
-      file: "./grafana-logging/docker-compose.yml"
+      file: grafana-logging/docker-compose.yml
       service: alloy-logging
     networks:
       - grafana-network # remember to change this if another network name is defined
 
   loki:
     extends:
-      file: "./grafana-logging/docker-compose.yml"
+      file: grafana-logging/docker-compose.yml
       service: loki
     networks:
       - grafana-network # remember to change this if another network name is defined
@@ -40,10 +40,19 @@ services:
     # ... other config
     volumes:
       # To provision Loki by default
-      - ./grafana-logging/config/grafana/provisioning/datasource-loki.yml:/etc/grafana/provisioning/datasource-loki.yml:ro
-
+      - ./grafana-logging/config/grafana/provisioning/datasources/datasource-loki.yml:/etc/grafana/provisioning/datasources/datasource-loki.yml:ro
+      # https://grafana.com/docs/grafana/latest/setup-grafana/installation/docker/#use-docker-volumes-recommended
+      - grafana-storage:/var/lib/grafana
   networks:
-    grafana-network:
+    - grafana-network # remember to change this if another network name is defined
+
+networks:
+  grafana-network: # or whatever other network name
+
+volumes:
+  # ... other volumes
+  grafana-storage:
+  loki-data:
 ```
 
 ### Remote machine integration
